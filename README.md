@@ -12,9 +12,16 @@ This is Golang version of [py-googletrans](https://github.com/ssut/py-googletran
 Googletrans is a **free** and **unlimited** Golang library that implemented Google Translate API.
 This uses the [Google Translate Ajax API from Chrome extensions](https://chrome.google.com/webstore/detail/google-translate/aapbdbdomjkkjkaonfhkkikfgjllcleb) to make calls to such methods as detect and translate.
 
+
+### Additional functionalities
+- Language detection
+- Language short and fullname validation (against languages constant)
+- Get all avaliable languages from [google-translate](https://cloud.google.com/translate/docs/languages)
+
+
 ## Download from Github
 ```shell script
-GO111MODULE=on go get github.com/Conight/go-googletrans
+GO111MODULE=on go get github.com/lcapuano-app/go-googletrans
 ```
 
 ## Quick Start Example
@@ -54,6 +61,25 @@ c := translator.Config{
 }
 t := translate.New(c)
 ```
+
+### Detect text language
+```go
+t := translate.New()
+result, err := t.DetectLanguage("Hello World!", "auto")
+// outputs:
+// result.Src = "en"
+// result.Confidence = 0.7553219
+```
+
+### Get all avaliable languages from google (slow)
+```go
+t := translate.New()
+overwriteDefaultLanguages := true
+langs, err := t.GetAvaliableLanguagesHTTP(overwriteDefaultLanguages)
+// Outputs a map of "lang_iso": "fullname"
+
+```
+
 
 See [Examples](./examples) for more examples.
 

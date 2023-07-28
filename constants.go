@@ -1,6 +1,9 @@
 package translator
 
-var defaultUserAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"
+const (
+	defaultLanguage  = "auto"
+	defaultUserAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"
+)
 
 var defaultServiceUrls = []string{
 	"translate.google.ac", "translate.google.ad", "translate.google.ae",

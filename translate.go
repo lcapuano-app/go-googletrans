@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"math/rand"
 	"net/http"
 	"net/url"
@@ -35,6 +36,22 @@ type sentence struct {
 	Trans   string `json:"trans"`
 	Orig    string `json:"orig"`
 	Backend int    `json:"backend"`
+}
+
+// Language detection (LD) response
+type LDResponse struct {
+	Sentences  []sentence  `json:"sentences"`
+	Src        string      `json:"src,omitempty"`
+	Spell      interface{} `json:"spell,omitempty"`
+	Confidence float64     `json:"confidence,omitempty"`
+	LdResult   LDResult    `json:"ld_result,omitempty"`
+}
+
+// Language detection (LD) result
+type LDResult struct {
+	Srclangs            []string  `json:"srclangs,omitempty"`
+	SrclangsConfidences []float64 `json:"srclangs_confidences,omitempty"`
+	ExtendedSrclangs    []string  `json:"extended_srclangs,omitempty"`
 }
 
 type Translator struct {
@@ -114,13 +131,6 @@ func (a *Translator) Translate(origin, src, dest string) (*Translated, error) {
 	// check src & dest
 	src = strings.ToLower(src)
 	dest = strings.ToLower(dest)
-	//if _, ok := languages[src]; !ok {
-	//	return nil, fmt.Errorf("src language code error")
-	//}
-	//if val, ok := languages[dest]; !ok || val == "auto" {
-	//	return nil, fmt.Errorf("dest language code error")
-	//}
-
 	text, err := a.translate(a.client, origin, src, dest)
 	if err != nil {
 		return nil, err
@@ -135,28 +145,10 @@ func (a *Translator) Translate(origin, src, dest string) (*Translated, error) {
 }
 
 func (a *Translator) translate(client *http.Client, origin, src, dest string) (string, error) {
-	tk, err := a.ta.do(origin)
+	req, err := a.getReq(client, origin, src, dest)
 	if err != nil {
 		return "", err
 	}
-
-	tranUrl := fmt.Sprintf("https://%s/translate_a/single", a.host)
-	req, err := http.NewRequest("GET", tranUrl, nil)
-	if err != nil {
-		return "", err
-	}
-	q := req.URL.Query()
-	// params from chrome translate extension
-	params := buildParams(origin, src, dest, tk)
-	for i := range params {
-		q.Add(i, params[i])
-	}
-	q.Add("dt", "t")
-	q.Add("dt", "bd")
-	q.Add("dj", "1")
-	q.Add("source", "popup")
-	req.URL.RawQuery = q.Encode()
-
 	// do request
 	resp, err := client.Do(req)
 	if err != nil {
@@ -195,4 +187,155 @@ func buildParams(query, src, dest, token string) map[string]string {
 		"q":      query,
 	}
 	return params
+}
+
+// Checks if the requested language exists on languages const.
+// It acepts short lang key (en, es, pt, etc..) and full language name (english, spanish, portuguese, etc..)
+//
+// Returns key, nil || "auto", error
+func (a *Translator) GetValidLanguageKey(lang string) (string, error) {
+	lang = strings.ToLower(lang)
+	for key, val := range languages {
+		if key == lang || val == lang {
+			return key, nil
+		}
+	}
+	return defaultLanguage, fmt.Errorf("invalid language '%s'", lang)
+}
+
+func (a *Translator) GetAvaliableLanguages() map[string]string {
+	return languages
+}
+
+// Detects the provided text writen language. Pass dest as "auto" to identify the source language automatically.
+func (a *Translator) DetectLanguage(origin, dest string) (LDResponse, error) {
+	dest = strings.ToLower(dest)
+	detected, err := a.detect(a.client, origin, dest)
+	if err != nil {
+		return detected, err
+	}
+	return detected, nil
+}
+
+func (a *Translator) detect(client *http.Client, origin, dest string) (LDResponse, error) {
+	var detected LDResponse
+	req, err := a.getReq(client, origin, "auto", dest)
+	if err != nil {
+		return detected, err
+	}
+	resp, err := client.Do(req)
+	if err != nil {
+		return detected, err
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != 200 {
+		return detected, fmt.Errorf("expected statusCode 200, got: %d; resp: %+v", resp.StatusCode, resp)
+	}
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return detected, err
+	}
+
+	err = json.Unmarshal(body, &detected)
+	if err != nil {
+		return detected, err
+	}
+	translated := ""
+	for _, s := range detected.Sentences {
+		translated += s.Trans
+	}
+
+	return detected, nil
+}
+
+func (a *Translator) getReq(client *http.Client, origin, src, dest string) (*http.Request, error) {
+	tk, err := a.ta.do(origin)
+	if err != nil {
+		return nil, err
+	}
+
+	tranUrl := fmt.Sprintf("https://%s/translate_a/single", a.host)
+	req, err := http.NewRequest("GET", tranUrl, nil)
+	if err != nil {
+		return nil, err
+	}
+	q := req.URL.Query()
+	// params from chrome translate extension
+	params := buildParams(origin, src, dest, tk)
+	for i := range params {
+		q.Add(i, params[i])
+	}
+	q.Add("dt", "t")
+	q.Add("dt", "bd")
+	q.Add("dj", "1")
+	q.Add("source", "popup")
+	req.URL.RawQuery = q.Encode()
+
+	return req, nil
+}
+
+func GetDefaultServiceUrls() []string {
+	return defaultServiceUrls
+}
+
+// Gets all avaliable languages from https://cloud.google.com/translate/docs/languages
+//
+// Use overwriteDefaultLanguages if you encounter problems with the requested language
+func (a *Translator) GetAvaliableLanguagesHTTP(overwriteDefaultLanguages bool) (map[string]string, error) {
+	httpLangs := languages
+	url := "https://cloud.google.com/translate/docs/languages"
+	method := "GET"
+
+	client := &http.Client{}
+	req, err := http.NewRequest(method, url, nil)
+
+	if err != nil {
+		return httpLangs, err
+	}
+	req.Header.Add("Cookie", "_ga_devsite=GA1.3.3578724760.1690567683")
+
+	res, err := client.Do(req)
+	if err != nil {
+		return httpLangs, err
+	}
+	defer res.Body.Close()
+
+	body, err := ioutil.ReadAll(res.Body)
+	if err != nil {
+		return httpLangs, err
+	}
+
+	bodyStr := string(body)
+	ini, end := strings.Index(bodyStr, "<table>"), strings.Index(bodyStr, "</table>")
+	table := bodyStr[ini:end]
+	ini, end = strings.Index(table, "<tbody>"), strings.Index(table, "</tbody>")
+	tbody := table[ini:end]
+	tbody = strings.ReplaceAll(tbody, "<tbody>", "")
+	tbody = strings.ReplaceAll(tbody, "</tbody>", "")
+	trs := strings.Split(tbody, "<tr>")
+
+	for _, tr := range trs {
+		ini, end = strings.Index(tr, "<td>"), strings.Index(tr, "</td>")
+		if ini < 0 || end < 0 {
+			continue
+		}
+		fullname := tr[(ini + 4):end]
+		if len(fullname) == 0 {
+			continue
+		}
+		end = strings.Index(tr, "</code>")
+		ini = end - 2
+		shortname := tr[ini:end]
+		if len(shortname) == 0 {
+			continue
+		}
+		shortname = strings.ToLower(shortname)
+		fullname = strings.ToLower(fullname)
+		httpLangs[shortname] = fullname
+	}
+
+	if overwriteDefaultLanguages {
+		languages = httpLangs
+	}
+	return httpLangs, nil
 }
