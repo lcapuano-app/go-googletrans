@@ -5,6 +5,8 @@ package main
 
 import (
 	"fmt"
+
+	translator "github.com/lcapuano-app/go-googletrans"
 )
 
 var content = `你好，世界！`
