@@ -4,8 +4,8 @@
 
 # Googletrans
 
-[![Sourcegraph](https://sourcegraph.com/github.com/Conight/go-googletrans/-/badge.svg)](https://sourcegraph.com/github.com/Conight/go-googletrans?badge)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://github.com/Conight/go-googletrans/blob/master/LICENSE)
+[![Sourcegraph](https://sourcegraph.com/github.com/lcapuano-app/go-googletrans/-/badge.svg)](https://sourcegraph.com/github.com/lcapuano-app/go-googletrans?badge)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://github.com/lcapuano-app/go-googletrans/blob/master/LICENSE)
 
 This is Golang version of [py-googletrans](https://github.com/ssut/py-googletrans).
 
@@ -13,7 +13,7 @@ Googletrans is a **free** and **unlimited** Golang library that implemented Goog
 This uses the [Google Translate Ajax API from Chrome extensions](https://chrome.google.com/webstore/detail/google-translate/aapbdbdomjkkjkaonfhkkikfgjllcleb) to make calls to such methods as detect and translate.
 
 
-### Additional functionalities
+## Additional functionalities
 - Language detection
 - Language short and fullname validation (against languages constant)
 - Get all avaliable languages from [google-translate](https://cloud.google.com/translate/docs/languages)
@@ -32,7 +32,7 @@ package main
 
 import (
 	"fmt"
-	"github.com/Conight/go-googletrans"
+	"github.com/lcapuano-app/go-googletrans"
 )
 
 func main() {
