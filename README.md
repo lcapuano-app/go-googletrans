@@ -1,6 +1,4 @@
-Certainly! Below is the `Readme.md` for your Golang library "translator":
-
-# translator
+# Translator
 
 [![Go Reference](https://pkg.go.dev/badge/github.com/lcapuano-app/translator.svg)](https://github.com/lcapuano-app/go-googletrans)
 
