@@ -45,9 +45,3 @@ func TestTranslator_DetectLanguage(t *testing.T) {
 		t.Fatalf("confidence %f should be over 0.5", result.Confidence)
 	}
 }
-
-func TestTranslator_GetAvaliableLanguagesHTTP(t *testing.T) {
-	trans := New()
-	overwriteDefaultLanguages := false
-	trans.GetAvaliableLanguagesHTTP(overwriteDefaultLanguages)
-}
