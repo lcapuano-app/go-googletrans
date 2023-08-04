@@ -357,7 +357,6 @@ func buildParams(query, src, dest, token string) map[string]string {
 //
 // Example Usage:
 //
-//	translator := New()
 //	language := "es"
 //	validLang, err := translator.GetValidLanguageKey(language)
 //	if err != nil {
@@ -365,7 +364,7 @@ func buildParams(query, src, dest, token string) map[string]string {
 //	  return
 //	}
 //	fmt.Println("Valid Language Code:", validLang)
-func (a *Translator) GetValidLanguageKey(lang string) (string, error) {
+func GetValidLanguageKey(lang string) (string, error) {
 	// Convert the provided language to lowercase for consistency.
 	lang = strings.ToLower(lang)
 
